@@ -19,6 +19,7 @@ interface GameBoardProps {
   onEliminatePlayer: (playerId: string) => void;
   onMrWhiteGuess: (isCorrect: boolean, guess: string) => void;
   onNextRound: () => void;
+  onQuit: () => void;
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -29,6 +30,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onEliminatePlayer,
   onMrWhiteGuess,
   onNextRound,
+  onQuit,
 }) => {
   const [timerSeconds, setTimerSeconds] = useState<number>(30);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
@@ -168,12 +170,28 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   return (
     <div className="glass-panel max-width-container animated-slide-in board-screen-container">
       {/* HEADER SECTION */}
-      <div className="board-header">
-        <div>
-          <span className="round-badge">Vòng {round}</span>
-          <h2 className="board-category">Chủ đề: {category}</h2>
+      <div className="board-header" style={{ flexDirection: "column", alignItems: "stretch", gap: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
+          <div>
+            <span className="round-badge">Vòng {round}</span>
+            <h2 className="board-category">Chủ đề: {category}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Bạn có chắc chắn muốn thoát trận đấu này và quay lại cài đặt?")) {
+                soundManager.playClick();
+                onQuit();
+              }
+            }}
+            className="btn-icon quit-game-btn"
+            title="Thoát trận"
+            style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(244, 63, 94, 0.15)", borderColor: "rgba(244, 63, 94, 0.3)", color: "#f87171" }}
+          >
+            ✕
+          </button>
         </div>
-        <div className="alive-stats">
+        <div className="alive-stats" style={{ display: "flex", flexDirection: "row", gap: "6px", justifyContent: "flex-start" }}>
           <span className="stat-pill civilian">Dân: {civiliansAlive}</span>
           {spiesAlive > 0 && <span className="stat-pill spy">Gián điệp: {spiesAlive}</span>}
           {whiteAlive > 0 && <span className="stat-pill white">Mr. White: {whiteAlive}</span>}

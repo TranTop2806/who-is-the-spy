@@ -13,14 +13,18 @@ interface Player {
 
 interface CardRevealProps {
   players: Player[];
+  showRoles: boolean;
   onFinishReveal: () => void;
   onPlayerSeen: (index: number) => void;
+  onQuit: () => void;
 }
 
 export const CardReveal: React.FC<CardRevealProps> = ({
   players,
+  showRoles,
   onFinishReveal,
   onPlayerSeen,
+  onQuit,
 }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
@@ -77,11 +81,27 @@ export const CardReveal: React.FC<CardRevealProps> = ({
     <div className="glass-panel max-width-container animated-slide-in text-center reveal-screen-container">
       {/* HEADER PROGRESS */}
       <div className="reveal-progress">
-        <span className="text-muted">Phát thẻ: </span>
-        <span className="reveal-progress-text">
-          {currentIndex + 1} / {players.length}
-        </span>
-        <div className="progress-bar-container">
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span className="text-muted">Phát thẻ: </span>
+          <span className="reveal-progress-text">
+            {currentIndex + 1} / {players.length}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("Bạn có chắc chắn muốn hủy trận đấu và quay lại cài đặt?")) {
+              soundManager.playClick();
+              onQuit();
+            }
+          }}
+          className="btn-icon quit-game-btn"
+          title="Hủy trận đấu"
+          style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(244, 63, 94, 0.15)", borderColor: "rgba(244, 63, 94, 0.3)", color: "#f87171" }}
+        >
+          ✕
+        </button>
+        <div className="progress-bar-container" style={{ width: "100%", marginTop: "8px" }}>
           <div
             className="progress-bar-fill"
             style={{ width: `${((currentIndex + 1) / players.length) * 100}%` }}
@@ -125,9 +145,15 @@ export const CardReveal: React.FC<CardRevealProps> = ({
               {/* Card Back (Revealed State) */}
               <div className={`flip-card-back ${currentPlayer.role.toLowerCase()}`}>
                 <div className="card-glow"></div>
-                <span className={`role-badge ${getRoleBadgeColor(currentPlayer.role)}`}>
-                  {getRoleDisplayName(currentPlayer.role)}
-                </span>
+                {(showRoles || currentPlayer.role === "MR_WHITE") ? (
+                  <span className={`role-badge ${getRoleBadgeColor(currentPlayer.role)}`}>
+                    {getRoleDisplayName(currentPlayer.role)}
+                  </span>
+                ) : (
+                  <span className="role-badge role-civilian-tag" style={{ background: "rgba(139, 92, 246, 0.2)", color: "#ddd6fe", borderColor: "rgba(139, 92, 246, 0.4)" }}>
+                    Bí Mật
+                  </span>
+                )}
                 
                 {currentPlayer.role === "MR_WHITE" ? (
                   <div className="mrwhite-card-content">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Shield, UserX, Play, HelpCircle, Plus, Minus, Tag } from "lucide-react";
+import { Users, Shield, UserX, Play, HelpCircle, Plus, Minus, Tag, Eye } from "lucide-react";
 import { CATEGORIES } from "../data/words";
 import { soundManager } from "../utils/SoundManager";
 
@@ -11,6 +11,7 @@ interface GameSetupProps {
     category: string;
     customCivilianWord: string;
     customSpyWord: string;
+    showRoles: boolean;
   }) => void;
 }
 
@@ -23,6 +24,7 @@ export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame }) => {
   const [customSpyWord, setCustomSpyWord] = useState<string>("");
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState<boolean>(false);
+  const [showRoles, setShowRoles] = useState<boolean>(true);
 
   // Synchronize player names length with playerCount
   useEffect(() => {
@@ -113,6 +115,7 @@ export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame }) => {
       category,
       customCivilianWord,
       customSpyWord,
+      showRoles,
     });
   };
 
@@ -198,6 +201,23 @@ export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame }) => {
               {mrWhiteCount > 0 ? "Bật" : "Tắt"}
             </button>
           </div>
+        </div>
+
+        {/* ADVANCED SETTINGS */}
+        <div className="form-group">
+          <label className="input-label">
+            <Eye size={18} className="icon-margin color-emerald" /> Hiện vai trò lúc lật thẻ
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              soundManager.playClick();
+              setShowRoles(!showRoles);
+            }}
+            className={`toggle-role-btn ${showRoles ? "active" : ""}`}
+          >
+            {showRoles ? "Hiện vai trò (Dân thường / Gián điệp)" : "Ẩn vai trò (Chỉ xem từ khóa bí mật)"}
+          </button>
         </div>
 
         {/* CATEGORY SELECTOR */}

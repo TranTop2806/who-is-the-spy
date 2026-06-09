@@ -22,6 +22,7 @@ interface GameConfig {
   category: string;
   customCivilianWord: string;
   customSpyWord: string;
+  showRoles: boolean;
 }
 
 export default function App() {
@@ -222,8 +223,10 @@ export default function App() {
       {screen === "REVEAL" && (
         <CardReveal
           players={players}
+          showRoles={config ? config.showRoles : true}
           onPlayerSeen={handlePlayerSeen}
           onFinishReveal={() => setScreen("PLAY")}
+          onQuit={handleRestart}
         />
       )}
       {screen === "PLAY" && (
@@ -235,6 +238,7 @@ export default function App() {
           onEliminatePlayer={handleEliminatePlayer}
           onMrWhiteGuess={handleMrWhiteGuess}
           onNextRound={handleNextRoundWithoutElimination}
+          onQuit={handleRestart}
         />
       )}
       {screen === "GAMEOVER" && (
