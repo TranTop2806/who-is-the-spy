@@ -38,12 +38,7 @@ export const CardReveal: React.FC<CardRevealProps> = ({
   const handleHide = () => {
     soundManager.playFlip();
     setIsRevealed(false);
-    
-    if (currentIndex < players.length - 1) {
-      setTransitionState("PASSING");
-    } else {
-      setTransitionState("PASSING"); // Will trigger start game on next click
-    }
+    setTransitionState("PASSING");
   };
 
   const handleNextPlayer = () => {
@@ -94,95 +89,95 @@ export const CardReveal: React.FC<CardRevealProps> = ({
         </div>
       </div>
 
-      {/* TRANSITION STAGE 1: READY FOR PLAYER */}
-      {transitionState === "READY" && (
-        <div className="reveal-stage-ready animated-fade-in">
-          <div className="user-icon-pulse">
-            <span className="player-avatar-large">{currentPlayer.name.slice(0, 2).toUpperCase()}</span>
-          </div>
-          <h2 className="reveal-title">Lượt của {currentPlayer.name}</h2>
-          <p className="reveal-desc">
-            Hãy đưa điện thoại cho <strong>{currentPlayer.name}</strong>. Các người chơi khác vui lòng quay mặt đi để bảo mật từ khóa!
+      {/* CARD DISPLAY AREA (Always mounted for smooth 3D flip transition) */}
+      <div className="reveal-card-section">
+        {transitionState === "READY" && (
+          <p className="reveal-desc animated-fade-in">
+            Hãy chuyền máy cho <strong>{currentPlayer.name}</strong>. Những người khác tránh nhìn vào màn hình!
           </p>
-          <button onClick={handleReveal} className="btn btn-secondary btn-large reveal-btn">
-            <Eye size={20} className="icon-margin" /> Xem từ khóa của tôi
-          </button>
-        </div>
-      )}
+        )}
+        {transitionState === "REVEALED" && (
+          <p className="reveal-desc animated-fade-in">
+            Ghi nhớ từ khóa của bạn và bấm nút ẩn đi trước khi chuyển máy!
+          </p>
+        )}
+        {transitionState === "PASSING" && (
+          <p className="reveal-desc animated-fade-in">
+            Từ khóa đã được ẩn an toàn.
+          </p>
+        )}
 
-      {/* TRANSITION STAGE 2: REVEALED */}
-      {transitionState === "REVEALED" && (
-        <div className="reveal-stage-revealed animated-fade-in">
-          <h2 className="reveal-title-private">Từ khóa bí mật của bạn</h2>
-          
-          {/* Card Container for 3D flip effect */}
-          <div className="flip-card-wrapper">
-            <div className={`flip-card ${isRevealed ? "is-flipped" : ""}`}>
-              <div className="flip-card-inner">
-                {/* Card Front (Hidden State) */}
-                <div className="flip-card-front">
-                  <div className="card-lock-icon">?</div>
+        <div className="flip-card-wrapper">
+          <div className={`flip-card ${isRevealed ? "is-flipped" : ""}`}>
+            <div className="flip-card-inner">
+              {/* Card Front (Hidden State) */}
+              <div className="flip-card-front">
+                <div className="card-front-content">
+                  <div className="user-icon-pulse">
+                    <span className="player-avatar-large">
+                      {currentPlayer.name.slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <h3 className="card-player-name">{currentPlayer.name}</h3>
+                  <p className="card-click-prompt">Nhấn nút bên dưới để lật thẻ</p>
                 </div>
-                {/* Card Back (Revealed State) */}
-                <div className={`flip-card-back ${currentPlayer.role.toLowerCase()}`}>
-                  <div className="card-glow"></div>
-                  <span className={`role-badge ${getRoleBadgeColor(currentPlayer.role)}`}>
-                    {getRoleDisplayName(currentPlayer.role)}
-                  </span>
-                  
-                  {currentPlayer.role === "MR_WHITE" ? (
-                    <div className="mrwhite-card-content">
-                      <ShieldAlert size={48} className="color-white animate-bounce-slow" />
-                      <h3 className="keyword-display white-glow-text mt-4">Bạn Không Có Từ Khóa!</h3>
-                      <p className="card-instruction">
-                        Hãy lắng nghe mô tả của người khác thật kỹ để giả vờ mình có từ khóa.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="normal-card-content">
-                      <Sparkles size={32} className="card-sparkle-icon" />
-                      <h3 className="keyword-display">{currentPlayer.word}</h3>
-                      <p className="card-instruction">
-                        Mô tả từ này mà không nói trực tiếp từ khóa ra nhé!
-                      </p>
-                    </div>
-                  )}
-                </div>
+              </div>
+              {/* Card Back (Revealed State) */}
+              <div className={`flip-card-back ${currentPlayer.role.toLowerCase()}`}>
+                <div className="card-glow"></div>
+                <span className={`role-badge ${getRoleBadgeColor(currentPlayer.role)}`}>
+                  {getRoleDisplayName(currentPlayer.role)}
+                </span>
+                
+                {currentPlayer.role === "MR_WHITE" ? (
+                  <div className="mrwhite-card-content">
+                    <ShieldAlert size={48} className="color-white animate-bounce-slow" />
+                    <h3 className="keyword-display white-glow-text mt-4">Bạn Không Có Từ Khóa!</h3>
+                    <p className="card-instruction">
+                      Hãy lắng nghe mô tả của người khác thật kỹ để giả vờ mình có từ khóa.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="normal-card-content">
+                    <Sparkles size={32} className="card-sparkle-icon" />
+                    <h3 className="keyword-display">{currentPlayer.word}</h3>
+                    <p className="card-instruction">
+                      Mô tả từ này mà không nói trực tiếp từ khóa ra nhé!
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <button onClick={handleHide} className="btn btn-primary btn-large hide-btn">
+      {/* DYNAMIC ACTION BUTTONS */}
+      <div className="reveal-actions-area">
+        {transitionState === "READY" && (
+          <button onClick={handleReveal} className="btn btn-secondary btn-large reveal-btn btn-block">
+            <Eye size={20} className="icon-margin" /> Xem từ khóa của tôi
+          </button>
+        )}
+
+        {transitionState === "REVEALED" && (
+          <button onClick={handleHide} className="btn btn-primary btn-large hide-btn btn-block">
             <EyeOff size={20} className="icon-margin" /> Tôi đã nhớ, ẩn đi
           </button>
-        </div>
-      )}
+        )}
 
-      {/* TRANSITION STAGE 3: PASSING SCREEN */}
-      {transitionState === "PASSING" && (
-        <div className="reveal-stage-passing animated-fade-in">
-          <div className="check-success-badge">✓</div>
-          <h2 className="reveal-title">Đã ẩn từ khóa!</h2>
-          
-          {currentIndex < players.length - 1 ? (
-            <div>
-              <p className="reveal-desc">
-                Hãy chuyển điện thoại cho người chơi tiếp theo: <strong>{players[currentIndex + 1].name}</strong>.
-              </p>
-              <button onClick={handleNextPlayer} className="btn btn-primary btn-large pass-btn">
-                Người tiếp theo <ArrowRight size={20} className="icon-margin-left" />
-              </button>
-            </div>
+        {transitionState === "PASSING" && (
+          currentIndex < players.length - 1 ? (
+            <button onClick={handleNextPlayer} className="btn btn-primary btn-large pass-btn btn-block">
+              Người tiếp theo <ArrowRight size={20} className="icon-margin-left" />
+            </button>
           ) : (
-            <div>
-              <p className="reveal-desc">Tất cả người chơi đã xem xong từ khóa bí mật!</p>
-              <button onClick={handleNextPlayer} className="btn btn-emerald btn-large pass-btn">
-                Bắt Đầu Vòng Đấu <Sparkles size={20} className="icon-margin-left animate-pulse" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            <button onClick={handleNextPlayer} className="btn btn-emerald btn-large pass-btn btn-block">
+              Bắt Đầu Vòng Đấu <Sparkles size={20} className="icon-margin-left animate-pulse" />
+            </button>
+          )
+        )}
+      </div>
     </div>
   );
 };
