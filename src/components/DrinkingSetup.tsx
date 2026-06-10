@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Play, HelpCircle, Plus, Minus, BookOpen, Beer } from "lucide-react";
+import { Users, Play, HelpCircle, Plus, Minus, BookOpen, Beer, ArrowLeft } from "lucide-react";
 import { soundManager } from "../utils/SoundManager";
 
 interface GameSetupProps {
@@ -8,9 +8,10 @@ interface GameSetupProps {
     pack: "CLASSIC" | "GEN_Z" | "MIXED";
     penaltyUnit: string;
   }) => void;
+  onBack?: () => void;
 }
 
-export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame }) => {
+export const DrinkingSetup: React.FC<GameSetupProps> = ({ onStartGame, onBack }) => {
   const [playerCount, setPlayerCount] = useState<number>(4);
   const [pack, setPack] = useState<"CLASSIC" | "GEN_Z" | "MIXED">("CLASSIC");
   const [penaltyUnit, setPenaltyUnit] = useState<string>("hớp");
@@ -84,9 +85,25 @@ export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame }) => {
   return (
     <div className="glass-panel max-width-container animated-slide-in">
       <div className="setup-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 className="gradient-text header-title" style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-          <Beer size={28} style={{ color: "#f59e0b" }} /> Do or Drink!
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {onBack && (
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playClick();
+                onBack();
+              }}
+              className="btn-icon back-btn"
+              style={{ width: "36px", height: "36px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.08)", color: "#fff" }}
+              aria-label="Quay lại"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <h1 className="gradient-text header-title" style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
+            <Beer size={28} style={{ color: "#f59e0b" }} /> Do or Drink!
+          </h1>
+        </div>
         <button
           type="button"
           onClick={() => {

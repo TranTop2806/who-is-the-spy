@@ -14,7 +14,7 @@ interface GameBoardProps {
   onQuit: () => void;
 }
 
-export const GameBoard: React.FC<GameBoardProps> = ({
+export const DrinkingBoard: React.FC<GameBoardProps> = ({
   players,
   deck,
   penaltyUnit,

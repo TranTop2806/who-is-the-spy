@@ -12,7 +12,7 @@ interface GameOverProps {
   onRestart: () => void;
 }
 
-export const GameOver: React.FC<GameOverProps> = ({
+export const DrinkingGameOver: React.FC<GameOverProps> = ({
   playerStats,
   penaltyUnit,
   onPlayAgain,
