@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Timer, Volume2, VolumeX, AlertTriangle, UserCheck, Skull, Shuffle } from "lucide-react";
+import { Timer, Volume2, VolumeX, AlertTriangle, Shuffle, Mic, AlertCircle, ArrowRight } from "lucide-react";
 import { soundManager } from "../utils/SoundManager";
 
 interface Player {
@@ -32,6 +32,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onNextRound,
   onQuit,
 }) => {
+  const [gamePhase, setGamePhase] = useState<"DESCRIBE" | "VOTE">("DESCRIBE");
+  const [currentDescriberId, setCurrentDescriberId] = useState<string | null>(null);
+  const [describedPlayerIds, setDescribedPlayerIds] = useState<string[]>([]);
+
   const [timerSeconds, setTimerSeconds] = useState<number>(30);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -49,7 +53,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Initialize starting player randomly on round start
   useEffect(() => {
-    selectRandomStarter();
+    const alive = players.filter((p) => p.isAlive);
+    if (alive.length > 0) {
+      const randIndex = Math.floor(Math.random() * alive.length);
+      const chosenPlayer = alive[randIndex];
+      const actualIndex = players.findIndex((p) => p.id === chosenPlayer.id);
+      
+      setStarterIndex(actualIndex);
+      setCurrentDescriberId(chosenPlayer.id);
+    }
+    
+    setDescribedPlayerIds([]);
+    setGamePhase("DESCRIBE");
     setIsTimerRunning(false);
     setTimerSeconds(30);
   }, [round]);
@@ -66,7 +81,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             return 0;
           }
           if (prev <= 6 && !isMuted) {
-            // Tick sound for last 5 seconds
             soundManager.playTick();
           }
           return prev - 1;
@@ -82,12 +96,16 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   }, [isTimerRunning, isMuted]);
 
   const selectRandomStarter = () => {
-    const alivePlayers = players.filter((p) => p.isAlive);
-    if (alivePlayers.length > 0) {
-      const randIndex = Math.floor(Math.random() * alivePlayers.length);
-      const chosenPlayer = alivePlayers[randIndex];
+    const alive = players.filter((p) => p.isAlive);
+    if (alive.length > 0) {
+      const randIndex = Math.floor(Math.random() * alive.length);
+      const chosenPlayer = alive[randIndex];
       const actualIndex = players.findIndex((p) => p.id === chosenPlayer.id);
+      
       setStarterIndex(actualIndex);
+      setCurrentDescriberId(chosenPlayer.id);
+      setTimerSeconds(30);
+      setIsTimerRunning(false);
     }
   };
 
@@ -104,6 +122,53 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+  };
+
+  // Next describer clockwise rotation
+  const handleNextDescriber = () => {
+    setIsTimerRunning(false);
+    
+    // Add current player to described list
+    const updatedDescribed = currentDescriberId 
+      ? [...describedPlayerIds, currentDescriberId]
+      : describedPlayerIds;
+    
+    setDescribedPlayerIds(updatedDescribed);
+
+    const currentIndex = players.findIndex((p) => p.id === currentDescriberId);
+
+    // Find next alive player in list (clockwise) who hasn't described yet
+    let nextPlayer: Player | null = null;
+    for (let i = 1; i <= players.length; i++) {
+      const checkIdx = (currentIndex + i) % players.length;
+      const p = players[checkIdx];
+      
+      if (p.isAlive && !updatedDescribed.includes(p.id) && p.id !== currentDescriberId) {
+        nextPlayer = p;
+        break;
+      }
+    }
+
+    if (nextPlayer) {
+      setCurrentDescriberId(nextPlayer.id);
+      setTimerSeconds(30);
+      setIsTimerRunning(false);
+    } else {
+      // All players described! Transition to VOTE phase
+      soundManager.playSuccess();
+      setGamePhase("VOTE");
+      setCurrentDescriberId(null);
+    }
+  };
+
+  const selectDescriberManually = (playerId: string) => {
+    const targetPlayer = players.find((p) => p.id === playerId);
+    if (targetPlayer && targetPlayer.isAlive && gamePhase === "DESCRIBE") {
+      soundManager.playClick();
+      setIsTimerRunning(false);
+      setCurrentDescriberId(playerId);
+      setTimerSeconds(30);
+    }
   };
 
   const openVoteModal = (playerId: string) => {
@@ -131,7 +196,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         setMrWhitePlayer(targetPlayer);
         setShowMrWhiteGuessModal(true);
       } else {
-        // Normal player elimination
         onEliminatePlayer(targetPlayer.id);
       }
     }
@@ -153,7 +217,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     soundManager.playClick();
     setShowGroupVerifyModal(false);
     if (mrWhitePlayer) {
-      // First eliminate the player, then process the guess outcome
       onEliminatePlayer(mrWhitePlayer.id);
       onMrWhiteGuess(isCorrect, mrWhiteGuess);
       setMrWhiteGuess("");
@@ -198,58 +261,135 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
       </div>
 
-      {/* TIMER CARD */}
-      <div className="timer-card">
-        <div className="timer-info-row">
-          <div className="timer-title-wrapper">
-            <Timer className={`timer-icon ${isTimerRunning ? "animate-pulse color-emerald" : ""}`} size={20} />
-            <span>Thời gian mô tả</span>
-          </div>
-          <button onClick={toggleMute} className="btn-icon mute-btn" aria-label="Bật/Tắt âm thanh">
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-        </div>
-
-        <div className="timer-countdown-row">
-          <div className={`timer-countdown-display ${timerSeconds <= 5 ? "countdown-critical" : ""}`}>
-            {timerSeconds}s
-          </div>
-          <div className="timer-actions">
-            <button onClick={handleTimerToggle} className={`btn ${isTimerRunning ? "btn-secondary" : "btn-primary"} timer-btn`}>
-              {isTimerRunning ? "Tạm dừng" : "Bắt đầu"}
-            </button>
-            <button onClick={handleTimerReset} className="btn btn-outline timer-btn">
-              Đặt lại
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* STARTER BOX */}
-      {starterIndex !== -1 && players[starterIndex]?.isAlive && (
-        <div className="starter-box animated-pulse-border">
-          <div className="starter-icon-wrapper">
-            <UserCheck size={20} className="color-emerald" />
+      {/* GAME PHASE BANNER */}
+      {gamePhase === "DESCRIBE" ? (
+        <div className="starter-box animated-pulse-border" style={{ background: "rgba(99, 102, 241, 0.08)", borderColor: "rgba(99, 102, 241, 0.25)" }}>
+          <div className="starter-icon-wrapper" style={{ background: "rgba(99, 102, 241, 0.15)", borderColor: "rgba(99, 102, 241, 0.25)", color: "#a78bfa" }}>
+            <Mic size={20} className="animate-pulse" />
           </div>
           <div className="starter-text-content">
-            <span className="starter-label">Người mô tả đầu tiên:</span>
-            <strong className="starter-name">{players[starterIndex].name}</strong>
+            <span className="starter-label">Lượt mô tả của:</span>
+            <strong className="starter-name" style={{ color: "#a78bfa" }}>
+              {players.find((p) => p.id === currentDescriberId)?.name || "Chưa chọn"}
+            </strong>
           </div>
-          <button onClick={selectRandomStarter} className="btn-icon shuffle-btn" title="Chọn ngẫu nhiên người khác">
+          <button onClick={selectRandomStarter} className="btn-icon shuffle-btn" title="Chọn ngẫu nhiên người bắt đầu" style={{ opacity: describedPlayerIds.length === 0 ? 0.7 : 0.2, pointerEvents: describedPlayerIds.length === 0 ? "auto" : "none" }}>
             <Shuffle size={18} />
           </button>
+        </div>
+      ) : (
+        <div className="starter-box animated-pulse-border" style={{ background: "rgba(16, 185, 129, 0.08)", borderColor: "rgba(16, 185, 129, 0.25)" }}>
+          <div className="starter-icon-wrapper" style={{ background: "rgba(16, 185, 129, 0.15)", borderColor: "rgba(16, 185, 129, 0.25)", color: "var(--color-emerald)" }}>
+            <AlertCircle size={20} />
+          </div>
+          <div className="starter-text-content">
+            <span className="starter-label" style={{ color: "var(--color-emerald)", fontWeight: 600 }}>Thảo luận & Bỏ phiếu</span>
+            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+              Hãy biểu quyết loại người chơi nghi ngờ nhất!
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* TIMER CARD (Only in DESCRIBE phase) */}
+      {gamePhase === "DESCRIBE" && (
+        <div className="timer-card">
+          <div className="timer-info-row">
+            <div className="timer-title-wrapper">
+              <Timer className={`timer-icon ${isTimerRunning ? "animate-pulse color-emerald" : ""}`} size={20} />
+              <span>Thời gian mô tả</span>
+            </div>
+            <button onClick={toggleMute} className="btn-icon mute-btn" aria-label="Bật/Tắt âm thanh">
+              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+          </div>
+
+          <div className="timer-countdown-row">
+            <div className={`timer-countdown-display ${timerSeconds <= 5 ? "countdown-critical" : ""}`}>
+              {timerSeconds}s
+            </div>
+            <div className="timer-actions">
+              <button onClick={handleTimerToggle} className={`btn ${isTimerRunning ? "btn-secondary" : "btn-primary"} timer-btn`}>
+                {isTimerRunning ? "Tạm dừng" : "Bắt đầu"}
+              </button>
+              <button onClick={handleTimerReset} className="btn btn-outline timer-btn" style={{ flex: 0.5 }}>
+                Đặt lại
+              </button>
+              <button onClick={handleNextDescriber} className="btn btn-emerald timer-btn" style={{ flex: 1 }}>
+                Xong <ArrowRight size={16} className="icon-margin-left" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {/* PLAYERS LIST */}
-      <h3 className="section-title">Danh sách người chơi ({players.filter(p => p.isAlive).length} còn sống)</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h3 className="section-title">
+          {gamePhase === "DESCRIBE" ? "Thứ tự mô tả từ khóa" : "Chọn người chơi để loại bỏ"}
+        </h3>
+        {gamePhase === "DESCRIBE" && (
+          <button
+            onClick={() => {
+              soundManager.playClick();
+              setGamePhase("VOTE");
+              setCurrentDescriberId(null);
+            }}
+            className="btn btn-outline btn-sm"
+            style={{ borderColor: "rgba(16, 185, 129, 0.3)", color: "#34d399", height: "30px", fontSize: "0.75rem" }}
+          >
+            Bỏ phiếu luôn
+          </button>
+        )}
+      </div>
+
       <div className="board-players-grid">
         {players.map((player, idx) => {
           const isStarter = idx === starterIndex;
+          const isActive = player.id === currentDescriberId;
+          const hasDescribed = describedPlayerIds.includes(player.id);
+          
+          let cardStatusClass = "";
+          let badgeText = "";
+          let badgeClass = "";
+          
+          if (!player.isAlive) {
+            cardStatusClass = "is-dead";
+            badgeText = "Bị loại";
+            badgeClass = "dead";
+          } else if (gamePhase === "DESCRIBE") {
+            if (isActive) {
+              cardStatusClass = "is-starter"; // Highlight active describer
+              badgeText = "Đang nói 🎤";
+              badgeClass = "alive";
+            } else if (hasDescribed) {
+              cardStatusClass = "is-described";
+              badgeText = "Đã nói ✓";
+              badgeClass = "described-badge";
+            } else {
+              badgeText = "Đợi";
+              badgeClass = "waiting-badge";
+            }
+          } else {
+            badgeText = "Sống";
+            badgeClass = "alive";
+          }
+
           return (
             <div
               key={player.id}
-              className={`board-player-card ${!player.isAlive ? "is-dead" : ""} ${isStarter ? "is-starter" : ""}`}
+              onClick={() => {
+                if (gamePhase === "DESCRIBE" && player.isAlive && !hasDescribed) {
+                  selectDescriberManually(player.id);
+                }
+              }}
+              className={`board-player-card ${cardStatusClass}`}
+              style={{
+                cursor: (gamePhase === "DESCRIBE" && player.isAlive && !hasDescribed) ? "pointer" : "default",
+                border: isActive ? "1.5px solid var(--color-emerald)" : "",
+                boxShadow: isActive ? "0 0 12px rgba(16, 185, 129, 0.25)" : "",
+                opacity: (gamePhase === "DESCRIBE" && hasDescribed && !isActive) ? 0.6 : 1
+              }}
             >
               <div className="player-card-header">
                 <div className="player-avatar-small-wrapper">
@@ -258,44 +398,69 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 </div>
                 <div className="player-name-wrapper">
                   <span className="player-board-name">{player.name}</span>
-                  {!player.isAlive && (
-                    <span className="player-status-badge dead">
-                      <Skull size={10} className="icon-margin" /> Bị loại
-                    </span>
-                  )}
-                  {player.isAlive && <span className="player-status-badge alive">Sống</span>}
+                  <span className={`player-status-badge ${badgeClass}`}>
+                    {badgeText}
+                  </span>
                 </div>
               </div>
 
               {!player.isAlive ? (
                 <div className="dead-player-info">
-                  <span className="dead-role-reveal">
-                    {player.role === "CIVILIAN" ? "Dân Thường" : player.role === "SPY" ? "Gián Điệp" : "Mr. White"}
+                  <span className="dead-role-reveal" style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                    Bí mật 💀
                   </span>
-                  {player.role !== "MR_WHITE" && (
-                    <span className="dead-word-reveal">"{player.word}"</span>
-                  )}
                 </div>
               ) : (
-                <div className="player-card-actions">
-                  <button
-                    onClick={() => openVoteModal(player.id)}
-                    className="btn btn-danger btn-sm btn-block vote-eliminate-btn"
-                  >
-                    Biểu quyết loại
-                  </button>
-                </div>
+                gamePhase === "VOTE" && (
+                  <div className="player-card-actions">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openVoteModal(player.id);
+                      }}
+                      className="btn btn-danger btn-sm vote-eliminate-btn"
+                    >
+                      Biểu quyết loại
+                    </button>
+                  </div>
+                )
               )}
             </div>
           );
         })}
       </div>
 
-      {/* NEXT ROUND ACTION BUTTON (when no one is eliminated yet, or just to sync) */}
+      {/* BOTTOM ACTION BUTTONS */}
       <div className="board-bottom-actions">
-        <button onClick={onNextRound} className="btn btn-outline btn-block mt-4">
-          Qua vòng mới (Không loại ai)
-        </button>
+        {gamePhase === "VOTE" ? (
+          <div style={{ display: "flex", gap: "10px", width: "100%" }}>
+            <button
+              onClick={() => {
+                soundManager.playClick();
+                setGamePhase("DESCRIBE");
+                // Resume descriptions from the first person who hasn't described yet
+                const alive = players.filter((p) => p.isAlive);
+                const undescributed = alive.filter((p) => !describedPlayerIds.includes(p.id));
+                if (undescributed.length > 0) {
+                  setCurrentDescriberId(undescributed[0].id);
+                } else {
+                  setCurrentDescriberId(alive[0].id);
+                }
+                setTimerSeconds(30);
+              }}
+              className="btn btn-outline flex-1"
+            >
+              Quay lại mô tả
+            </button>
+            <button onClick={onNextRound} className="btn btn-secondary flex-1">
+              Bỏ qua vòng này
+            </button>
+          </div>
+        ) : (
+          <button onClick={onNextRound} className="btn btn-outline btn-block">
+            Qua vòng mới (Không loại ai)
+          </button>
+        )}
       </div>
 
       {/* ELIMINATION CONFIRMATION MODAL */}

@@ -1066,6 +1066,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 .player-status-badge.alive { color: var(--color-emerald); }
 .player-status-badge.dead { color: var(--text-muted); }
+.player-status-badge.described-badge { color: var(--text-muted); opacity: 0.8; }
+.player-status-badge.waiting-badge { color: #f59e0b; }
 
 .dead-player-info {
   display: flex;

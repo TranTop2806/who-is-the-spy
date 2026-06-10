@@ -143,7 +143,7 @@ export const CardReveal: React.FC<CardRevealProps> = ({
                 </div>
               </div>
               {/* Card Back (Revealed State) */}
-              <div className={`flip-card-back ${currentPlayer.role.toLowerCase()}`}>
+              <div className={`flip-card-back ${(!showRoles && currentPlayer.role === "SPY") ? "civilian" : currentPlayer.role.toLowerCase()}`}>
                 <div className="card-glow"></div>
                 {(showRoles || currentPlayer.role === "MR_WHITE") ? (
                   <span className={`role-badge ${getRoleBadgeColor(currentPlayer.role)}`}>
