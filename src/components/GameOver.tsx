@@ -1,190 +1,173 @@
 import React, { useEffect } from "react";
-import { Award, RotateCcw, Home, Skull, CheckCircle2 } from "lucide-react";
+import { Award, RotateCcw, Home, Beer, Sparkles, Trophy } from "lucide-react";
 import { soundManager } from "../utils/SoundManager";
 import confetti from "canvas-confetti";
 
-interface Player {
-  id: string;
-  name: string;
-  role: "CIVILIAN" | "SPY" | "MR_WHITE";
-  word: string;
-  isAlive: boolean;
-  hasSeenWord: boolean;
-}
-
 interface GameOverProps {
-  winner: "CIVILIAN" | "SPY" | "MR_WHITE" | null;
-  players: Player[];
-  civilianWord: string;
-  spyWord: string;
-  mrWhiteGuess: string | null;
-  mrWhiteGuessCorrect: boolean | null;
+  playerStats: {
+    [playerName: string]: { completed: number; drank: number };
+  };
+  penaltyUnit: string;
   onPlayAgain: () => void;
   onRestart: () => void;
 }
 
 export const GameOver: React.FC<GameOverProps> = ({
-  winner,
-  players,
-  civilianWord,
-  spyWord,
-  mrWhiteGuess,
-  mrWhiteGuessCorrect,
+  playerStats,
+  penaltyUnit,
   onPlayAgain,
   onRestart,
 }) => {
   
+  // Confetti effect and victory sound on mount
   useEffect(() => {
-    if (winner === "CIVILIAN") {
-      soundManager.playSuccess();
-      // Launch confetti
-      const duration = 3 * 1000;
-      const end = Date.now() + duration;
+    soundManager.playSuccess();
+    
+    const duration = 4 * 1000;
+    const end = Date.now() + duration;
 
-      const frame = () => {
-        confetti({
-          particleCount: 4,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 },
-          colors: ["#a78bfa", "#818cf8", "#34d399"]
-        });
-        confetti({
-          particleCount: 4,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 },
-          colors: ["#a78bfa", "#818cf8", "#34d399"]
-        });
-
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      };
-      frame();
-    } else if (winner === "SPY" || winner === "MR_WHITE") {
-      soundManager.playFail();
-      // Simple warning confetti or red confetti for spies
+    const frame = () => {
       confetti({
-        particleCount: 50,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ["#f87171", "#fb7185", "#f43f5e"]
+        particleCount: 5,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ["#f59e0b", "#fbbf24", "#fb923c"]
       });
-    }
-  }, [winner]);
+      confetti({
+        particleCount: 5,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ["#f59e0b", "#fbbf24", "#fb923c"]
+      });
 
-  const getWinnerTitle = () => {
-    switch (winner) {
-      case "CIVILIAN":
-        return "Phe Dân Thường Thắng!";
-      case "SPY":
-        return "Phe Gián Điệp Thắng!";
-      case "MR_WHITE":
-        return "Mr. White Thắng Xuất Sắc!";
-      default:
-        return "Trò Chơi Kết Thúc!";
-    }
-  };
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+    frame();
+  }, [playerStats]);
 
-  const getWinnerDescription = () => {
-    switch (winner) {
-      case "CIVILIAN":
-        return "Dân thường đã xuất sắc tìm ra toàn bộ Gián điệp & Mr. White!";
-      case "SPY":
-        return "Gián điệp đã xuất sắc ẩn mình và tiêu diệt phần lớn Dân thường!";
-      case "MR_WHITE":
-        if (mrWhiteGuessCorrect && mrWhiteGuess) {
-          return `Mr. White bị loại nhưng đã lật kèo thành công khi đoán đúng từ khóa "${civilianWord}" (đoán là: "${mrWhiteGuess}")!`;
-        }
-        return "Mr. White đã qua mặt tất cả mọi người!";
-      default:
-        return "";
-    }
-  };
+  const playerNames = Object.keys(playerStats);
 
-  const getWinnerClass = () => {
-    switch (winner) {
-      case "CIVILIAN":
-        return "winner-civilian";
-      case "SPY":
-        return "winner-spy";
-      case "MR_WHITE":
-        return "winner-white";
-      default:
-        return "";
+  // Find Winner (Most Completed Dares)
+  let maxCompleted = -1;
+  let winners: string[] = [];
+  playerNames.forEach((name) => {
+    const score = playerStats[name].completed;
+    if (score > maxCompleted) {
+      maxCompleted = score;
+      winners = [name];
+    } else if (score === maxCompleted) {
+      winners.push(name);
     }
-  };
+  });
+
+  // Find Penalty King (Most Drank)
+  let maxDrank = -1;
+  let drinkers: string[] = [];
+  playerNames.forEach((name) => {
+    const score = playerStats[name].drank;
+    if (score > maxDrank) {
+      maxDrank = score;
+      drinkers = [name];
+    } else if (score === maxDrank) {
+      drinkers.push(name);
+    }
+  });
+
+  // Sort players by completed count descending
+  const sortedPlayers = [...playerNames].sort((a, b) => {
+    if (playerStats[b].completed !== playerStats[a].completed) {
+      return playerStats[b].completed - playerStats[a].completed;
+    }
+    return playerStats[b].drank - playerStats[a].drank; // secondary sort by drank
+  });
 
   return (
     <div className="glass-panel max-width-container animated-slide-in text-center gameover-screen-container">
-      <div className={`winner-banner ${getWinnerClass()}`}>
-        <Award size={48} className="winner-icon animate-bounce-slow" />
-        <h2 className="winner-title">{getWinnerTitle()}</h2>
-        <p className="winner-desc">{getWinnerDescription()}</p>
+      {/* HEADER BANNER */}
+      <div className="winner-banner winner-civilian" style={{ background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%)", border: "1.5px solid rgba(245, 158, 11, 0.3)" }}>
+        <Award size={48} className="winner-icon animate-bounce-slow" style={{ color: "#f59e0b" }} />
+        <h2 className="winner-title" style={{ color: "#fcd34d" }}>TỔNG KẾT TRẬN ĐẤU</h2>
+        <p className="winner-desc">Cảm ơn mọi người đã nhiệt tình uống hết mình và chơi hết sức!</p>
       </div>
 
-      {/* WORD PAIR REVEAL */}
-      <div className="gameover-word-reveal-box">
-        <div className="reveal-pair-item">
-          <span className="label">Từ khóa Dân thường:</span>
-          <span className="value civilian-value">{civilianWord}</span>
+      {/* AWARDS SECTION */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", margin: "10px 0" }}>
+        {/* WINNER AWARD */}
+        <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid rgba(255, 255, 255, 0.06)", borderRadius: "18px", padding: "16px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Trophy size={32} style={{ color: "#f59e0b", marginBottom: "8px" }} />
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Dũng Sĩ Diệt Mồi</span>
+          <strong style={{ fontSize: "1.1rem", color: "#fff", display: "block", marginTop: "4px" }}>
+            {winners.join(", ")}
+          </strong>
+          <span style={{ fontSize: "0.8rem", color: "#34d399", marginTop: "4px", fontWeight: 600 }}>
+            {maxCompleted} Nhiệm vụ
+          </span>
         </div>
-        <div className="reveal-pair-item">
-          <span className="label">Từ khóa Gián điệp:</span>
-          <span className="value spy-value">{spyWord}</span>
+
+        {/* DRINKER AWARD */}
+        <div style={{ background: "rgba(255, 255, 255, 0.02)", border: "1px solid rgba(255, 255, 255, 0.06)", borderRadius: "18px", padding: "16px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <Beer size={32} style={{ color: "#f87171", marginBottom: "8px" }} />
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Vua Diệt Mồi (Thần Cồn)</span>
+          <strong style={{ fontSize: "1.1rem", color: "#fff", display: "block", marginTop: "4px" }}>
+            {drinkers.join(", ")}
+          </strong>
+          <span style={{ fontSize: "0.8rem", color: "#f87171", marginTop: "4px", fontWeight: 600 }}>
+            {maxDrank} {penaltyUnit}
+          </span>
         </div>
       </div>
 
-      {/* DETAILED PLAYER SUMMARY */}
-      <h3 className="section-title text-left mt-4 mb-2">Chi tiết trận đấu:</h3>
+      {/* DETAILED STANDINGS TABLE */}
+      <h3 className="section-title text-left mt-2 mb-2" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <Sparkles size={16} style={{ color: "#fcd34d" }} /> Bảng Xếp Hạng Chi Tiết
+      </h3>
       <div className="table-responsive">
         <table className="summary-table">
           <thead>
             <tr>
+              <th>Hạng</th>
               <th>Người chơi</th>
-              <th>Vai trò</th>
-              <th>Từ khóa</th>
-              <th>Trạng thái</th>
+              <th>Đã hoàn thành</th>
+              <th>Đã uống</th>
             </tr>
           </thead>
           <tbody>
-            {players.map((player) => (
-              <tr key={player.id} className={!player.isAlive ? "row-dead" : "row-alive"}>
-                <td>
-                  <strong className="summary-player-name">{player.name}</strong>
-                </td>
-                <td>
-                  <span className={`summary-role-badge ${player.role.toLowerCase()}`}>
-                    {player.role === "CIVILIAN" ? "Dân Thường" : player.role === "SPY" ? "Gián Điệp" : "Mr. White"}
-                  </span>
-                </td>
-                <td>
-                  <span className="summary-word">
-                    {player.role === "MR_WHITE" ? "Không có" : player.word}
-                  </span>
-                </td>
-                <td>
-                  {player.isAlive ? (
-                    <span className="status-badge-table alive">
-                      <CheckCircle2 size={12} className="icon-margin" /> Còn sống
-                    </span>
-                  ) : (
-                    <span className="status-badge-table dead">
-                      <Skull size={12} className="icon-margin" /> Bị loại
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {sortedPlayers.map((name, index) => {
+              const stat = playerStats[name];
+              const isWinner = winners.includes(name);
+              const isDranker = drinkers.includes(name);
+              
+              return (
+                <tr key={name} className={isWinner ? "row-alive" : ""} style={{ background: isWinner ? "rgba(245, 158, 11, 0.03)" : "" }}>
+                  <td>
+                    <strong style={{ color: index === 0 ? "#fcd34d" : "#a1a1aa" }}>#{index + 1}</strong>
+                  </td>
+                  <td>
+                    <strong className="summary-player-name">{name}</strong>
+                    {isWinner && <span style={{ fontSize: "0.75rem", marginLeft: "6px", color: "#f59e0b" }}>🏆</span>}
+                    {isDranker && <span style={{ fontSize: "0.75rem", marginLeft: "6px", color: "#f87171" }}>🍺</span>}
+                  </td>
+                  <td>
+                    <span style={{ color: "#34d399", fontWeight: 600 }}>{stat.completed}</span>
+                  </td>
+                  <td>
+                    <span style={{ color: "#f87171", fontWeight: 600 }}>{stat.drank} {penaltyUnit}</span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="gameover-actions">
-        <button onClick={onPlayAgain} className="btn btn-primary btn-large btn-block mb-3">
-          <RotateCcw size={18} className="icon-margin" /> Chơi Lại Trận Mới (Giữ cài đặt)
+      {/* ACTIONS */}
+      <div className="gameover-actions" style={{ marginTop: "24px" }}>
+        <button onClick={onPlayAgain} className="btn btn-primary btn-large btn-block mb-3" style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", boxShadow: "0 4px 15px rgba(245, 158, 11, 0.3)" }}>
+          <RotateCcw size={18} className="icon-margin" /> Chơi Lại Vòng Mới (Giữ cài đặt)
         </button>
         <button onClick={onRestart} className="btn btn-outline btn-large btn-block">
           <Home size={18} className="icon-margin" /> Quay Về Cài Đặt Ban Đầu
