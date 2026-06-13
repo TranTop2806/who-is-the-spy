@@ -19,6 +19,7 @@ interface GameBoardProps {
   onEliminatePlayer: (playerId: string) => void;
   onMrWhiteGuess: (isCorrect: boolean, guess: string) => void;
   onNextRound: () => void;
+  onEndGameEarly: () => void;
   onQuit: () => void;
 }
 
@@ -30,13 +31,22 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
   onEliminatePlayer,
   onMrWhiteGuess,
   onNextRound,
+  onEndGameEarly,
   onQuit,
 }) => {
   const [gamePhase, setGamePhase] = useState<"DESCRIBE" | "VOTE">("DESCRIBE");
   const [currentDescriberId, setCurrentDescriberId] = useState<string | null>(null);
   const [describedPlayerIds, setDescribedPlayerIds] = useState<string[]>([]);
 
-  const [timerSeconds, setTimerSeconds] = useState<number>(30);
+  const [defaultTimerSeconds, setDefaultTimerSeconds] = useState<number>(30);
+  const [timerSeconds, setTimerSeconds] = useState<number>(defaultTimerSeconds);
+
+  const handleUpdateDefaultTimer = (seconds: number) => {
+    soundManager.playClick();
+    setDefaultTimerSeconds(seconds);
+    setIsTimerRunning(false);
+    setTimerSeconds(seconds);
+  };
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [starterIndex, setStarterIndex] = useState<number>(-1);
@@ -66,8 +76,8 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
     setDescribedPlayerIds([]);
     setGamePhase("DESCRIBE");
     setIsTimerRunning(false);
-    setTimerSeconds(30);
-  }, [round]);
+    setTimerSeconds(defaultTimerSeconds);
+  }, [round, defaultTimerSeconds]);
 
   // Timer interval effect
   useEffect(() => {
@@ -104,7 +114,7 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
       
       setStarterIndex(actualIndex);
       setCurrentDescriberId(chosenPlayer.id);
-      setTimerSeconds(30);
+      setTimerSeconds(defaultTimerSeconds);
       setIsTimerRunning(false);
     }
   };
@@ -117,7 +127,7 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
   const handleTimerReset = () => {
     soundManager.playClick();
     setIsTimerRunning(false);
-    setTimerSeconds(30);
+    setTimerSeconds(defaultTimerSeconds);
   };
 
   const toggleMute = () => {
@@ -151,7 +161,7 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
 
     if (nextPlayer) {
       setCurrentDescriberId(nextPlayer.id);
-      setTimerSeconds(30);
+      setTimerSeconds(defaultTimerSeconds);
       setIsTimerRunning(false);
     } else {
       // All players described! Transition to VOTE phase
@@ -167,7 +177,7 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
       soundManager.playClick();
       setIsTimerRunning(false);
       setCurrentDescriberId(playerId);
-      setTimerSeconds(30);
+      setTimerSeconds(defaultTimerSeconds);
     }
   };
 
@@ -299,9 +309,29 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
               <Timer className={`timer-icon ${isTimerRunning ? "animate-pulse color-emerald" : ""}`} size={20} />
               <span>Thời gian mô tả</span>
             </div>
-            <button onClick={toggleMute} className="btn-icon mute-btn" aria-label="Bật/Tắt âm thanh">
-              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-            </button>
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              {[15, 30, 45, 60].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => handleUpdateDefaultTimer(s)}
+                  style={{
+                    padding: "2px 6px",
+                    fontSize: "0.75rem",
+                    background: defaultTimerSeconds === s ? "rgba(16, 185, 129, 0.2)" : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${defaultTimerSeconds === s ? "var(--color-emerald)" : "rgba(255,255,255,0.08)"}`,
+                    color: defaultTimerSeconds === s ? "#34d399" : "var(--text-secondary)",
+                    borderRadius: "6px",
+                    cursor: "pointer"
+                  }}
+                >
+                  {s}s
+                </button>
+              ))}
+              <button onClick={toggleMute} className="btn-icon mute-btn" aria-label="Bật/Tắt âm thanh" style={{ marginLeft: "8px" }}>
+                {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              </button>
+            </div>
           </div>
 
           <div className="timer-countdown-row">
@@ -446,7 +476,7 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
                 } else {
                   setCurrentDescriberId(alive[0].id);
                 }
-                setTimerSeconds(30);
+                setTimerSeconds(defaultTimerSeconds);
               }}
               className="btn btn-outline flex-1"
             >
@@ -461,6 +491,18 @@ export const SpyBoard: React.FC<GameBoardProps> = ({
             Qua vòng mới (Không loại ai)
           </button>
         )}
+        <button
+          onClick={() => {
+            soundManager.playClick();
+            if (confirm("Bạn có chắc muốn kết thúc game sớm và lật mở tất cả vai trò bí mật?")) {
+              onEndGameEarly();
+            }
+          }}
+          className="btn btn-outline btn-block mt-2"
+          style={{ borderStyle: "dashed", borderColor: "rgba(255,255,255,0.12)", color: "#f87171" }}
+        >
+          Kết Thúc Game Sớm (Xem Kết Quả)
+        </button>
       </div>
 
       {/* ELIMINATION CONFIRMATION MODAL */}

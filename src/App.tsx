@@ -16,6 +16,24 @@ import { DrinkingGameOver } from "./components/DrinkingGameOver";
 import { generateDeck } from "./data/drinkingCards";
 import type { DrinkingCard } from "./data/drinkingCards";
 
+// Exploding Kittens components
+import { ExplodingSetup } from "./components/exploding/ExplodingSetup";
+import { ExplodingLobby } from "./components/exploding/ExplodingLobby";
+import { ExplodingBoard } from "./components/exploding/ExplodingBoard";
+import { ExplodingGameOver } from "./components/exploding/ExplodingGameOver";
+
+// Uno components
+import { UnoSetup } from "./components/uno/UnoSetup";
+import { UnoLobby } from "./components/uno/UnoLobby";
+import { UnoBoard } from "./components/uno/UnoBoard";
+import { UnoGameOver } from "./components/uno/UnoGameOver";
+
+// Werewolf components
+import { WerewolfSetup } from "./components/werewolf/WerewolfSetup";
+import { WerewolfBoard } from "./components/werewolf/WerewolfBoard";
+import { WerewolfGameOver } from "./components/werewolf/WerewolfGameOver";
+import type { WerewolfRoleType } from "./data/werewolfRoles";
+
 // Type definitions for Who is the Spy
 interface SpyPlayer {
   id: string;
@@ -39,12 +57,36 @@ interface SpyConfig {
 // Type definitions for Do or Drink
 interface DrinkConfig {
   playerNames: string[];
-  pack: "CLASSIC" | "GEN_Z" | "MIXED";
+  pack: "GROUP" | "COUPLES" | "MIXED";
   penaltyUnit: string;
 }
 
 export default function App() {
-  const [activeGame, setActiveGame] = useState<"SELECTOR" | "SPY" | "DRINK">("SELECTOR");
+  const [activeGame, setActiveGame] = useState<"SELECTOR" | "SPY" | "DRINK" | "EXPLODING" | "UNO" | "WEREWOLF">("SELECTOR");
+
+  // ==========================================
+  // EXPLODING KITTENS STATES
+  // ==========================================
+  const [explodingScreen, setExplodingScreen] = useState<"SETUP" | "LOBBY" | "PLAY" | "GAMEOVER">("SETUP");
+  const [explodingRoomCode, setExplodingRoomCode] = useState<string>("");
+  const [explodingPlayerId, setExplodingPlayerId] = useState<string>("");
+  const [explodingPlayerName, setExplodingPlayerName] = useState<string>("");
+
+  // ==========================================
+  // UNO STATES
+  // ==========================================
+  const [unoScreen, setUnoScreen] = useState<"SETUP" | "LOBBY" | "PLAY" | "GAMEOVER">("SETUP");
+  const [unoRoomCode, setUnoRoomCode] = useState<string>("");
+  const [unoPlayerId, setUnoPlayerId] = useState<string>("");
+  const [unoPlayerName, setUnoPlayerName] = useState<string>("");
+
+  // ==========================================
+  // WEREWOLF STATES
+  // ==========================================
+  const [werewolfScreen, setWerewolfScreen] = useState<"SETUP" | "PLAY" | "GAMEOVER">("SETUP");
+  const [werewolfPlayers, setWerewolfPlayers] = useState<{ id: string; name: string; role: WerewolfRoleType; isAlive: boolean; hasSeenRole: boolean }[]>([]);
+  const [werewolfWinner, setWerewolfWinner] = useState<string | null>(null);
+  const [werewolfConfig, setWerewolfConfig] = useState<{ playerNames: string[]; roles: Record<string, number> } | null>(null);
 
   // ==========================================
   // WHO IS THE SPY STATES
@@ -229,6 +271,11 @@ export default function App() {
     setSpyRound(prev => prev + 1);
   };
 
+  const handleSpyEndGameEarly = () => {
+    setSpyWinner(null);
+    setSpyScreen("GAMEOVER");
+  };
+
   const handleSpyPlayAgain = () => {
     if (spyConfig) {
       handleStartSpyGame(spyConfig);
@@ -248,7 +295,7 @@ export default function App() {
     setDrinkPenaltyUnit(unit);
     
     // Generate randomized deck based on player names
-    const generatedDeck = generateDeck(pack, playerNames);
+    const generatedDeck = generateDeck(pack);
     setDrinkDeck(generatedDeck);
 
     setDrinkScreen("PLAY");
@@ -282,7 +329,7 @@ export default function App() {
       {activeGame === "SPY" && (
         <>
           {spyScreen === "SETUP" && (
-            <SpySetup onStartGame={handleStartSpyGame} onBack={() => setActiveGame("SELECTOR")} />
+            <SpySetup onStartGame={handleStartSpyGame} onBack={() => setActiveGame("SELECTOR")} initialSettings={spyConfig} />
           )}
           {spyScreen === "REVEAL" && (
             <CardReveal
@@ -305,6 +352,7 @@ export default function App() {
               onEliminatePlayer={handleSpyEliminatePlayer}
               onMrWhiteGuess={handleSpyMrWhiteGuess}
               onNextRound={handleSpyNextRoundWithoutElimination}
+              onEndGameEarly={handleSpyEndGameEarly}
               onQuit={() => {
                 setSpyScreen("SETUP");
                 setActiveGame("SELECTOR");
@@ -350,6 +398,154 @@ export default function App() {
               penaltyUnit={drinkPenaltyUnit}
               onPlayAgain={handleDrinkPlayAgain}
               onRestart={() => setDrinkScreen("SETUP")}
+            />
+          )}
+        </>
+      )}
+
+      {/* EXPLODING KITTENS */}
+      {activeGame === "EXPLODING" && (
+        <>
+          {explodingScreen === "SETUP" && (
+            <ExplodingSetup
+              onBack={() => setActiveGame("SELECTOR")}
+              onRoomJoined={(code, pid, name) => {
+                setExplodingRoomCode(code);
+                setExplodingPlayerId(pid);
+                setExplodingPlayerName(name);
+                setExplodingScreen("LOBBY");
+              }}
+            />
+          )}
+          {explodingScreen === "LOBBY" && (
+            <ExplodingLobby
+              roomCode={explodingRoomCode}
+              playerId={explodingPlayerId}
+              playerName={explodingPlayerName}
+              onGameStarted={() => setExplodingScreen("PLAY")}
+              onQuit={() => {
+                setExplodingScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
+            />
+          )}
+          {explodingScreen === "PLAY" && (
+            <ExplodingBoard
+              roomCode={explodingRoomCode}
+              playerId={explodingPlayerId}
+              playerName={explodingPlayerName}
+              onGameOver={() => setExplodingScreen("GAMEOVER")}
+              onQuit={() => {
+                setExplodingScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
+            />
+          )}
+          {explodingScreen === "GAMEOVER" && (
+            <ExplodingGameOver
+              roomCode={explodingRoomCode}
+              playerId={explodingPlayerId}
+              onRestart={() => setExplodingScreen("LOBBY")}
+              onQuit={() => {
+                setExplodingScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
+            />
+          )}
+        </>
+      )}
+
+      {/* UNO */}
+      {activeGame === "UNO" && (
+        <>
+          {unoScreen === "SETUP" && (
+            <UnoSetup
+              onBack={() => setActiveGame("SELECTOR")}
+              onRoomJoined={(code, pid, name) => {
+                setUnoRoomCode(code);
+                setUnoPlayerId(pid);
+                setUnoPlayerName(name);
+                setUnoScreen("LOBBY");
+              }}
+            />
+          )}
+          {unoScreen === "LOBBY" && (
+            <UnoLobby
+              roomCode={unoRoomCode}
+              playerId={unoPlayerId}
+              playerName={unoPlayerName}
+              onGameStarted={() => setUnoScreen("PLAY")}
+              onQuit={() => {
+                setUnoScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
+            />
+          )}
+          {unoScreen === "PLAY" && (
+            <UnoBoard
+              roomCode={unoRoomCode}
+              playerId={unoPlayerId}
+              playerName={unoPlayerName}
+              onGameOver={() => setUnoScreen("GAMEOVER")}
+              onQuit={() => {
+                setUnoScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
+            />
+          )}
+          {unoScreen === "GAMEOVER" && (
+            <UnoGameOver
+              roomCode={unoRoomCode}
+              playerId={unoPlayerId}
+              onRestart={() => setUnoScreen("LOBBY")}
+              onQuit={() => {
+                setUnoScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
+            />
+          )}
+        </>
+      )}
+
+      {/* WEREWOLF */}
+      {activeGame === "WEREWOLF" && (
+        <>
+          {werewolfScreen === "SETUP" && (
+            <WerewolfSetup
+              onBack={() => setActiveGame("SELECTOR")}
+              onStartGame={(config) => {
+                setWerewolfConfig(config);
+                setWerewolfScreen("PLAY");
+              }}
+            />
+          )}
+          {werewolfScreen === "PLAY" && (
+            <WerewolfBoard
+              config={werewolfConfig!}
+              onGameOver={(winner, finalPlayers) => {
+                setWerewolfWinner(winner);
+                setWerewolfPlayers(finalPlayers);
+                setWerewolfScreen("GAMEOVER");
+              }}
+              onQuit={() => {
+                setWerewolfScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
+            />
+          )}
+          {werewolfScreen === "GAMEOVER" && (
+            <WerewolfGameOver
+              winner={werewolfWinner!}
+              players={werewolfPlayers}
+              onPlayAgain={() => {
+                // Restart with the same config
+                setWerewolfScreen("PLAY");
+              }}
+              onRestart={() => setWerewolfScreen("SETUP")}
+              onQuit={() => {
+                setWerewolfScreen("SETUP");
+                setActiveGame("SELECTOR");
+              }}
             />
           )}
         </>

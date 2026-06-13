@@ -5,7 +5,7 @@ import { soundManager } from "../utils/SoundManager";
 interface GameSetupProps {
   onStartGame: (settings: {
     playerNames: string[];
-    pack: "CLASSIC" | "GEN_Z" | "MIXED";
+    pack: "GROUP" | "COUPLES" | "MIXED";
     penaltyUnit: string;
   }) => void;
   onBack?: () => void;
@@ -13,7 +13,7 @@ interface GameSetupProps {
 
 export const DrinkingSetup: React.FC<GameSetupProps> = ({ onStartGame, onBack }) => {
   const [playerCount, setPlayerCount] = useState<number>(4);
-  const [pack, setPack] = useState<"CLASSIC" | "GEN_Z" | "MIXED">("CLASSIC");
+  const [pack, setPack] = useState<"GROUP" | "COUPLES" | "MIXED">("GROUP");
   const [penaltyUnit, setPenaltyUnit] = useState<string>("hớp");
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState<boolean>(false);
@@ -55,7 +55,7 @@ export const DrinkingSetup: React.FC<GameSetupProps> = ({ onStartGame, onBack })
     }
   };
 
-  const handlePackSelect = (selectedPack: "CLASSIC" | "GEN_Z" | "MIXED") => {
+  const handlePackSelect = (selectedPack: "GROUP" | "COUPLES" | "MIXED") => {
     soundManager.playClick();
     setPack(selectedPack);
   };
@@ -155,12 +155,12 @@ export const DrinkingSetup: React.FC<GameSetupProps> = ({ onStartGame, onBack })
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <button
               type="button"
-              onClick={() => handlePackSelect("CLASSIC")}
-              className={`toggle-role-btn ${pack === "CLASSIC" ? "active" : ""}`}
+              onClick={() => handlePackSelect("GROUP")}
+              className={`toggle-role-btn ${pack === "GROUP" ? "active" : ""}`}
               style={{
-                borderColor: pack === "CLASSIC" ? "var(--color-primary)" : "",
-                background: pack === "CLASSIC" ? "rgba(99, 102, 241, 0.12)" : "",
-                color: pack === "CLASSIC" ? "#c7d2fe" : "",
+                borderColor: pack === "GROUP" ? "var(--color-primary)" : "",
+                background: pack === "GROUP" ? "rgba(99, 102, 241, 0.12)" : "",
+                color: pack === "GROUP" ? "#c7d2fe" : "",
                 height: "auto",
                 minHeight: "46px",
                 padding: "12px 16px",
@@ -170,17 +170,17 @@ export const DrinkingSetup: React.FC<GameSetupProps> = ({ onStartGame, onBack })
                 textAlign: "left"
               }}
             >
-              <span>🍻 Do or Drink Cơ Bản</span>
+              <span>🍻 Do or Drink Nhóm (Bạn Bè)</span>
               <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>250+ lá</span>
             </button>
             <button
               type="button"
-              onClick={() => handlePackSelect("GEN_Z")}
-              className={`toggle-role-btn ${pack === "GEN_Z" ? "active" : ""}`}
+              onClick={() => handlePackSelect("COUPLES")}
+              className={`toggle-role-btn ${pack === "COUPLES" ? "active" : ""}`}
               style={{
-                borderColor: pack === "GEN_Z" ? "var(--color-secondary)" : "",
-                background: pack === "GEN_Z" ? "rgba(139, 92, 246, 0.12)" : "",
-                color: pack === "GEN_Z" ? "#ddd6fe" : "",
+                borderColor: pack === "COUPLES" ? "var(--color-danger)" : "",
+                background: pack === "COUPLES" ? "rgba(244, 63, 94, 0.12)" : "",
+                color: pack === "COUPLES" ? "#fecdd3" : "",
                 height: "auto",
                 minHeight: "46px",
                 padding: "12px 16px",
@@ -190,7 +190,7 @@ export const DrinkingSetup: React.FC<GameSetupProps> = ({ onStartGame, onBack })
                 textAlign: "left"
               }}
             >
-              <span>⚡ Chịu Chơi hay Chịu Uống (Gen-Z)</span>
+              <span>💖 Do or Drink Cặp Đôi (Hâm Nóng)</span>
               <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>250+ lá</span>
             </button>
             <button

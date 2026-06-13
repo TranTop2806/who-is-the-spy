@@ -14,6 +14,34 @@ interface GameBoardProps {
   onQuit: () => void;
 }
 
+const formatCardContent = (
+  content: string,
+  p1: string,
+  otherPlayers: string[],
+  penalty: number
+): string => {
+  let formatted = content;
+  
+  // Pick P2 (random player other than P1)
+  let p2 = "một người chơi khác";
+  if (otherPlayers.length > 0) {
+    p2 = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+  }
+  
+  // Pick P3 (random player other than P1 and P2)
+  let p3 = "người chơi thứ ba";
+  const otherPlayersWithoutP2 = otherPlayers.filter(p => p !== p2);
+  if (otherPlayersWithoutP2.length > 0) {
+    p3 = otherPlayersWithoutP2[Math.floor(Math.random() * otherPlayersWithoutP2.length)];
+  }
+  
+  return formatted
+    .replace(/{P1}/g, p1)
+    .replace(/{P2}/g, p2)
+    .replace(/{P3}/g, p3)
+    .replace(/{N}/g, penalty.toString());
+};
+
 export const DrinkingBoard: React.FC<GameBoardProps> = ({
   players,
   deck,
@@ -48,7 +76,20 @@ export const DrinkingBoard: React.FC<GameBoardProps> = ({
       onGameOver(playerStats);
       return;
     }
-    setDrawnCard(deck[currentCardIndex]);
+    
+    const rawCard = deck[currentCardIndex];
+    const otherPlayers = players.filter(name => name !== currentPlayerName);
+    const formattedContent = formatCardContent(
+      rawCard.content,
+      currentPlayerName,
+      otherPlayers,
+      rawCard.penalty
+    );
+
+    setDrawnCard({
+      ...rawCard,
+      content: formattedContent
+    });
     setCardStatus("DRAWN");
   };
 

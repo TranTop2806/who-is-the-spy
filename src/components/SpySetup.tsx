@@ -3,29 +3,32 @@ import { Users, Shield, UserX, Play, HelpCircle, Plus, Minus, Tag, Eye, ArrowLef
 import { CATEGORIES } from "../data/words";
 import { soundManager } from "../utils/SoundManager";
 
-interface GameSetupProps {
-  onStartGame: (settings: {
-    playerNames: string[];
-    spyCount: number;
-    mrWhiteCount: number;
-    category: string;
-    customCivilianWord: string;
-    customSpyWord: string;
-    showRoles: boolean;
-  }) => void;
-  onBack?: () => void;
+interface SpyConfig {
+  playerNames: string[];
+  spyCount: number;
+  mrWhiteCount: number;
+  category: string;
+  customCivilianWord: string;
+  customSpyWord: string;
+  showRoles: boolean;
 }
 
-export const SpySetup: React.FC<GameSetupProps> = ({ onStartGame, onBack }) => {
-  const [playerCount, setPlayerCount] = useState<number>(5);
-  const [spyCount, setSpyCount] = useState<number>(1);
-  const [mrWhiteCount, setMrWhiteCount] = useState<number>(0);
-  const [category, setCategory] = useState<string>("Tất cả");
-  const [customCivilianWord, setCustomCivilianWord] = useState<string>("");
-  const [customSpyWord, setCustomSpyWord] = useState<string>("");
-  const [playerNames, setPlayerNames] = useState<string[]>([]);
+interface GameSetupProps {
+  onStartGame: (settings: SpyConfig) => void;
+  onBack?: () => void;
+  initialSettings?: SpyConfig | null;
+}
+
+export const SpySetup: React.FC<GameSetupProps> = ({ onStartGame, onBack, initialSettings }) => {
+  const [playerCount, setPlayerCount] = useState<number>(initialSettings ? initialSettings.playerNames.length : 5);
+  const [spyCount, setSpyCount] = useState<number>(initialSettings ? initialSettings.spyCount : 1);
+  const [mrWhiteCount, setMrWhiteCount] = useState<number>(initialSettings ? initialSettings.mrWhiteCount : 0);
+  const [category, setCategory] = useState<string>(initialSettings ? initialSettings.category : "Tất cả");
+  const [customCivilianWord, setCustomCivilianWord] = useState<string>(initialSettings ? initialSettings.customCivilianWord : "");
+  const [customSpyWord, setCustomSpyWord] = useState<string>(initialSettings ? initialSettings.customSpyWord : "");
+  const [playerNames, setPlayerNames] = useState<string[]>(initialSettings ? initialSettings.playerNames : []);
   const [showHelp, setShowHelp] = useState<boolean>(false);
-  const [showRoles, setShowRoles] = useState<boolean>(true);
+  const [showRoles, setShowRoles] = useState<boolean>(initialSettings ? initialSettings.showRoles : true);
 
   // Synchronize player names length with playerCount
   useEffect(() => {
